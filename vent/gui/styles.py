@@ -1,12 +1,17 @@
 from PySide2 import QtGui
+from vent.alarm import AlarmSeverity
 
 SUBWAY_COLORS = {
     'blue': "#0039A6",
+    'ltblue': "#00A1DE",
     'lime': "#6CBE45",
     'gray': "A7A9AC",
     'orange': "#FF6319",
+    'orange_darker': "#CC4E14",
     'yellow': "#FCCC0A",
+    'yellow_darker': "#CCA408",
     'red': "#EE352E",
+    'red_darker': "#B72722",
     'green': "#00933C",
     'purple': "#B933AD"
 }
@@ -14,8 +19,22 @@ SUBWAY_COLORS = {
 BACKGROUND_COLOR = "#111111"
 BOX_BACKGROUND = "#333333"
 TEXT_COLOR = "#EEEEEE"
-CONTROL_BACKGROUND = "#EEEEEE"
+BORDER_COLOR = "palette(midlight)"
+BOX_BORDERS = f"2px solid palette(midlight);"
+BOX_BORDERS_LOCKED = f"3px solid {SUBWAY_COLORS['lime']}"
+BOX_BORDERS_UNLOCKED = f"3px solid {SUBWAY_COLORS['red']}"
+BOX_MARGINS = 4
+GRAY_TEXT = BOX_BACKGROUND
+
+CONTROL_BACKGROUND = "#DDDDDD"
+CONTROL_BACKGROUND_LOCKED = "#DDDDDD"
+CONTROL_SUBBOX_BACKGROUND = "#FFFFFF"
+CONTROL_SUBBOX_BACKGROUND_LOCKED = "#DDDDDD"
 CONTROL_TEXT = BACKGROUND_COLOR
+CONTROL_TEXT_SECONDARY = "#333333"
+CONTROL_TEXT_SECONDARY_SIZE = 10
+CONTROL_SENSOR_BACKGROUND = "#CCCCCC"
+CONTROL_SENSOR_BAR_WIDTH = 50
 HANDLE_HEIGHT = 10
 SLIDER_WIDTH = 80
 SLIDER_HEIGHT = 20 #50
@@ -24,13 +43,26 @@ SLIDER_COLOR = TEXT_COLOR
 INDICATOR_COLOR = SUBWAY_COLORS['blue']
 ALARM_COLOR = "#FF0000"
 
+TOGGLE_MAX_WIDTH = 50
+
 DIVIDER_COLOR = "#FFFFFF"
 DIVIDER_COLOR_DARK = BOX_BACKGROUND
 
-VALUE_SIZE = 30 #72
-NAME_SIZE = 10 #36
+VALUE_SIZE = 72 #30
+VALUE_MINOR_SIZE = 40
+NAME_SIZE = 36 #10
 UNIT_SIZE = 18
 TICK_SIZE = 12
+
+CARD_TITLE_SIZE = 24
+CARD_TIMESTAMP_SIZE = 12
+
+ALARM_BAR_HEIGHT = 100
+MIDLINE_MARGIN = 30
+START_BUTTON_HEIGHT=80
+BUTTON_MAX_HEIGHT = 100
+
+LEFT_COLUMN_MAX_WIDTH = 400
 
 MONITOR_UPDATE_INTERVAL = 0.5
 """
@@ -71,27 +103,21 @@ QSlider::handle:horizontal {{
 
 """
 
+MONITOR_BOX = f"""
+QGroupBox {{
+    margin-top: {MIDLINE_MARGIN}px;
+    border-top-right-radius: 5px;
+    
+}}
 
-# RANGE_SLIDER = """
-# QSlider {{
-#     font-size: 12px;
-# }}
-# QSlider::groove:vertical {{
-# border: 1px solid #FFFFFF;
-# width: {slider_width}px;
-# }}
-# QSlider::handle:vertical {{
-# height: {height}px;
-# width: 20px;
-# margin: 0px -20px 0px px;
-# background-color: {slider_color};
-# }}
-#
-# """.format(slider_width=INDICATOR_WIDTH,
-#     height=HANDLE_HEIGHT,
-#            slider_color=SLIDER_COLOR)
-
-
+QGroupBox::title {{
+  subcontrol-origin: margin;
+  subcontrol-position: top left;
+  color: {TEXT_COLOR};
+  left: 3px;
+  top: 5px;
+}}
+"""
 
 DISPLAY_VALUE =  """
 QLabel {{ 
@@ -137,6 +163,107 @@ DISPLAY_WIDGET = """
 border-bottom: 2px solid white;
 """
 
+
+PRESSURE_PLOT_BOX = f"""
+QGroupBox {{
+    background-color: {CONTROL_BACKGROUND};
+    border: 0px solid #000000;
+    border-left: {BOX_BORDERS};
+    border-top: {BOX_BORDERS};
+    border-bottom: {BOX_BORDERS};
+    margin-left: {BOX_MARGINS}px;
+    margin-bottom: {BOX_MARGINS}px;
+
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+    margin-top: {MIDLINE_MARGIN}px;
+}}
+
+QGroupBox::title {{
+  subcontrol-origin: margin;
+  subcontrol-position: top left;
+  color: {TEXT_COLOR};
+  left: 3px;
+  top: 5px;
+}}
+"""
+
+PRESSURE_PLOT_BOX_LOCKED = f"""
+QGroupBox {{
+    background-color: {CONTROL_BACKGROUND_LOCKED};
+    border: 0px solid #000000;
+    border-left: {BOX_BORDERS_LOCKED};
+    border-top: {BOX_BORDERS_LOCKED};
+    border-bottom: {BOX_BORDERS_LOCKED};
+    margin-left: {BOX_MARGINS}px;
+    margin-bottom: {BOX_MARGINS}px;
+
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+    margin-top: {MIDLINE_MARGIN}px;
+}}
+
+QGroupBox::title {{
+  subcontrol-origin: margin;
+  subcontrol-position: top left;
+  color: {TEXT_COLOR};
+  left: 3px;
+  top: 5px;
+}}
+"""
+
+PRESSURE_PLOT_BOX_UNLOCKED = f"""
+QGroupBox {{
+    background-color: {CONTROL_BACKGROUND};
+    border: 0px solid #000000;
+    border-left: {BOX_BORDERS_UNLOCKED};
+    border-top: {BOX_BORDERS_UNLOCKED};
+    border-bottom: {BOX_BORDERS_UNLOCKED};
+    margin-left: {BOX_MARGINS}px;
+    margin-bottom: {BOX_MARGINS}px;
+
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+    margin-top: {MIDLINE_MARGIN}px;
+}}
+
+QGroupBox::title {{
+  subcontrol-origin: margin;
+  subcontrol-position: top left;
+  color: {TEXT_COLOR};
+  left: 3px;
+  top: 5px;
+}}
+"""
+
+PLOT_BOX = f"""
+QGroupBox {{
+    background-color: {BOX_BACKGROUND};
+    border: 0px solid #000000;
+    border-right: 1px solid {BORDER_COLOR};
+    border-top: 1px solid {BORDER_COLOR};
+    border-bottom: 1px solid {BORDER_COLOR};
+    margin-right: {BOX_MARGINS}px;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+}}
+
+QGroupBox::title {{
+  subcontrol-origin: margin;
+  subcontrol-position: top left;
+  color: {TEXT_COLOR};
+  left: 3px;
+  top: 3px;
+}}
+"""
+
+MONITOR_PLOT = f"""
+QWidget {{
+    margin-right: {BOX_MARGINS}px;
+}}
+"""
+
+
 CONTROL_LABEL = f"""
 QLabel {{
     font-size: 12px;
@@ -156,19 +283,165 @@ QLineEdit {{
 
 """
 
+CONTROL_VALUE_REC = f"""
+QLabel {{ 
+    color: {SUBWAY_COLORS['red']}; 
+    font-size: {VALUE_SIZE}pt;
+}}
+QLineEdit {{ 
+    color: {TEXT_COLOR}; 
+    font-size: {VALUE_SIZE}pt;
+}}
+
+"""
+
+CONTROL_SENSOR_LABEL = f"""
+QLabel {{
+    color: {GRAY_TEXT};
+    font-size: {VALUE_MINOR_SIZE}pt;
+    background-color: {CONTROL_SENSOR_BACKGROUND};
+}}
+"""
+
+CONTROL_SENSOR_FRAME = f"""
+QFrame {{
+    background-color: {CONTROL_SENSOR_BACKGROUND};
+    border-radius: 10px;
+    border-color: palette(midlight);
+    border-style: outset;
+    border-width: 1px;
+}}
+
+QFrame QWidget {{
+    border-radius: 0px;
+    border-color: palette(midlight);
+    border-style: outset;
+    border-width: 0px;
+}}
+"""
+
+
 CONTROL_BOX = f"""
 QGroupBox {{
-    background-color: {TEXT_COLOR};
-    border: 1px solid #000000;
-    border-radius: 4px;
-    margin-top: 20px;
+    background-color: {CONTROL_BACKGROUND};
+    border: 0px solid #000000;
+    border-top: {BOX_BORDERS};
+    border-right: {BOX_BORDERS};
+    border-bottom: {BOX_BORDERS};
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border-bottom-left-radius: 5px;
+    margin-top: {MIDLINE_MARGIN}px;
 }}
 
 QGroupBox::title {{
   subcontrol-origin: margin;
-  subcontrol-position: top left;
-  left: 3px;
-  top: -5px;
+  subcontrol-position: top right;
+  color: {TEXT_COLOR};
+  right: 7px;
+  top: 5px;
+}}
+"""
+
+CONTROL_BOX_LOCKED = f"""
+QGroupBox {{
+    background-color: {CONTROL_BACKGROUND_LOCKED};
+    border: 0px solid {SUBWAY_COLORS['lime']};
+    border-top: {BOX_BORDERS_LOCKED};
+    border-right: {BOX_BORDERS_LOCKED};
+    border-bottom: {BOX_BORDERS_LOCKED};
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border-bottom-left-radius: 5px;
+    margin-top: {MIDLINE_MARGIN}px;
+}}
+
+QGroupBox::title {{
+  subcontrol-origin: margin;
+  subcontrol-position: top right;
+  color: {TEXT_COLOR};
+  right: 7px;
+  top: 5px;
+}}
+"""
+
+CONTROL_BOX_UNLOCKED = f"""
+QGroupBox {{
+    background-color: {CONTROL_BACKGROUND};
+    border: 0px solid {SUBWAY_COLORS['red']};
+    border-top: {BOX_BORDERS_UNLOCKED};
+    border-right: {BOX_BORDERS_UNLOCKED};
+    border-bottom: {BOX_BORDERS_UNLOCKED};
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border-bottom-left-radius: 5px;
+    margin-top: {MIDLINE_MARGIN}px;
+}}
+
+QGroupBox::title {{
+  subcontrol-origin: margin;
+  subcontrol-position: top right;
+  color: {TEXT_COLOR};
+  right: 7px;
+  top: 5px;
+}}
+"""
+
+CONTROL_SUBBOX = f"""
+QGroupBox {{
+    background-color: {CONTROL_SUBBOX_BACKGROUND};
+    border: 0px solid #000000;
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+    border-top-right-radius: 0px;
+    border-bottom-right-radius: 0px;
+    margin-left: 5px;
+}}
+
+QGroupBox::title {{
+  subcontrol-origin: margin;
+  subcontrol-position: top right;
+  right: 5px;
+  top: 5px;
+  color: {CONTROL_TEXT};
+}}
+
+QRadioButton {{
+    color: {CONTROL_TEXT_SECONDARY};
+    font-size: {CONTROL_TEXT_SECONDARY_SIZE}
+}}
+
+QLabel {{
+    color: {CONTROL_TEXT_SECONDARY};
+}}
+"""
+
+CONTROL_SUBBOX_LOCKED = f"""
+QGroupBox {{
+    background-color: {CONTROL_SUBBOX_BACKGROUND_LOCKED};
+    border: 0px solid #000000;
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+    border-top-right-radius: 0px;
+    border-bottom-right-radius: 0px;
+    margin-left: 5px;
+}}
+
+QGroupBox::title {{
+  subcontrol-origin: margin;
+  subcontrol-position: top right;
+  right: 5px;
+  top: 5px;
+  color: {CONTROL_TEXT};
+}}
+
+QRadioButton {{
+    color: {CONTROL_TEXT_SECONDARY};
+    font-size: {CONTROL_TEXT_SECONDARY_SIZE}
+}}
+
+QLabel {{
+    color: {CONTROL_TEXT_SECONDARY};
 }}
 """
 
@@ -184,11 +457,55 @@ QLabel {{
     font-size: {UNIT_SIZE}pt;
 }}"""
 
-TITLE_STYLE = """
-font-size: 32pt;
+CONTROL_NAME_REC = f"""
+QLabel {{ 
+    color: {SUBWAY_COLORS['red']}; 
+    font-size: {NAME_SIZE}pt;
+}}"""
+
+CONTROL_UNITS_REC = f"""
+QLabel {{ 
+    color: {SUBWAY_COLORS['red']}; 
+    font-size: {UNIT_SIZE}pt;
+}}"""
+
+CONTROL_CYCLE_BOX = f"""
+QGroupBox {{
+    color: {BACKGROUND_COLOR};
+}}
+
+QGroupBox QRadioButton {{
+    color: {BACKGROUND_COLOR};
+}}
+
+QRadioButton::indicator {{
+    width:                  10px;
+    height:                 10px;
+    border-radius:          7px;
+}}
+
+QRadioButton::indicator:checked {{
+    background-color:       black;
+    border:                 2px solid black;
+}}
+
+QRadioButton::indicator:unchecked {{
+    background-color:       white;
+    border:                 2px solid black;
+}}
+"""
+
+PLOT_TITLE_STYLE = """
+font-size: 16pt;
 color: {text_color};
-text-align: left;
+justify: left;
 """.format(text_color=TEXT_COLOR)
+
+PRESSURE_PLOT_TITLE_STYLE = f"""
+font-size: 16pt;
+color: {GRAY_TEXT};
+justify: left;
+"""
 
 
 
@@ -213,9 +530,84 @@ QFrame {{
 }}
 """
 
+ALARM_CARD_LOW = f"""
+QFrame {{
+    border: 3px solid {SUBWAY_COLORS['yellow_darker']};
+    border-radius: 4px;
+    background-color: {SUBWAY_COLORS['yellow']};
+}}
+
+QFrame > QLabel {{
+    border: 0px;
+    border-radius: 0px;
+    color: {BACKGROUND_COLOR};
+}}
+"""
+
+ALARM_CARD_MEDIUM = f"""
+QFrame {{
+    border: 3px solid {SUBWAY_COLORS['orange_darker']};
+    border-radius: 4px;
+    background-color: {SUBWAY_COLORS['orange']};
+}}
+
+QFrame > QLabel {{
+    border: 0px;
+    border-radius: 0px;
+    color: {BACKGROUND_COLOR};
+}}
+"""
+
+ALARM_CARD_HIGH = f"""
+QFrame {{
+    border: 3px solid {SUBWAY_COLORS['red_darker']};
+    border-radius: 4px;
+    background-color: {SUBWAY_COLORS['red']};
+}}
+
+QFrame > QLabel {{
+    border: 0px;
+    border-radius: 0px;
+    color: {TEXT_COLOR};
+}}
+"""
+
+ALARM_CARD_TITLE = f"""
+QLabel {{
+    font-size: {CARD_TITLE_SIZE}pt;
+    font-weight: bold;
+}}
+"""
+
+ALARM_CARD_TIMESTAMP = f"""
+QLabel {{
+    font-size: {CARD_TIMESTAMP_SIZE}pt;
+}}
+"""
+
+ALARM_CARD_BUTTON = f"""
+QPushButton {{
+    font-size: 42pt;
+    color: {TEXT_COLOR};
+}}
+"""
+
+ALARM_CARD_BUTTON_INACTIVE = f"""
+QPushButton {{
+    font-size: 42pt;
+    color: {GRAY_TEXT};
+}}
+"""
+
+ALARM_CARD_STYLES = {
+    AlarmSeverity.LOW: ALARM_CARD_LOW,
+    AlarmSeverity.MEDIUM: ALARM_CARD_MEDIUM,
+    AlarmSeverity.HIGH: ALARM_CARD_HIGH
+}
+
 HEARTBEAT_NORMAL = f"""
 QRadioButton::indicator {{
-    background: qradialgradient(cx:0, cy:0, radius:1, fx:0.5, fy:0.5, stop:0 white, stop:1 {SUBWAY_COLORS['blue']});
+    background: qradialgradient(cx:0, cy:0, radius:1, fx:0.5, fy:0.5, stop:0 white, stop:1 {SUBWAY_COLORS['green']});
     border-radius: 5px;
 }}
 
@@ -235,9 +627,60 @@ QLabel {{
 }}
 """
 
-STATUS_BOX = f"""
-QWidget {{
+HEARTBEAT_OFF = f"""
+QRadioButton::indicator {{
+    background: qradialgradient(cx:0, cy:0, radius:1, fx:0.5, fy:0.5, stop:0 white, stop:1 #DDDDDD);
+    border-radius: 5px;
+}}
+
+QLabel {{
+    color: {TEXT_COLOR};
+}}
+"""
+
+CONTROL_PANEL = f"""
+QGroupBox {{
     background-color: {BACKGROUND_COLOR};
+    border-radius: 5px;
+}}
+
+QGroupBox::title {{
+  subcontrol-origin: margin;
+  subcontrol-position: top left;
+  color: {TEXT_COLOR};
+  left: 3px;
+  top: 2px;
+}}
+"""
+
+START_BUTTON_OFF = f"""
+QToolButton {{
+    font-size: 48px;
+    font-style: bold;
+    color: {TEXT_COLOR};
+    text-align: center center;
+}}
+"""
+
+START_BUTTON_ON = f"""
+QToolButton {{
+font-size: 48px;
+    font-style: bold;
+    color: {TEXT_COLOR};
+}}
+"""
+
+START_BUTTON_ALARM = f"""
+QToolButton {{
+font-size: 48px;
+    font-style: bold;
+    color: {SUBWAY_COLORS['red']};
+}}
+"""
+
+TOGGLE_BUTTON = f"""
+QPushButton:checked {{
+    color: {SUBWAY_COLORS['lime']}
 }}
 """
 
@@ -259,10 +702,6 @@ QGroupBox {{
 
 QGroupBox::title {{
     background-color: transparent;
-}}
-
-QGroupBox#CONTROLBOX {{
-    background-color: {CONTROL_BACKGROUND};
 }}
 
 /*
@@ -417,7 +856,7 @@ def set_dark_palette(app):
 
     # base
     darkPalette.setColor(QtGui.QPalette.WindowText, QtGui.QColor(TEXT_COLOR))
-    darkPalette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))
+    darkPalette.setColor(QtGui.QPalette.Button, QtGui.QColor(50, 50, 50))
     darkPalette.setColor(QtGui.QPalette.Light, QtGui.QColor(180, 180, 180))
     darkPalette.setColor(QtGui.QPalette.Midlight, QtGui.QColor(90, 90, 90))
     darkPalette.setColor(QtGui.QPalette.Dark, QtGui.QColor(35, 35, 35))
@@ -446,6 +885,12 @@ def set_dark_palette(app):
                          QtGui.QColor(80, 80, 80))
     darkPalette.setColor(QtGui.QPalette.Disabled, QtGui.QPalette.HighlightedText,
                          QtGui.QColor(127, 127, 127))
+
+    # active
+    # darkPalette.setColor(QtGui.QPalette.Highlight, QtGui.QPalette.Button,
+    #                      QtGui.QColor(BOX_BACKGROUND))
+    # darkPalette.setColor(QtGui.QPalette.Active, QtGui.QPalette.ButtonText,
+    #                      QtGui.QColor(SUBWAY_COLORS['green']))
 
     app.setPalette(darkPalette)
 

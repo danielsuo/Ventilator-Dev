@@ -46,7 +46,10 @@ _DEFAULTS = {
     'CONTROLLER_LOOP_UPDATE_TIME': 0.0,
     'CONTROLLER_LOOPS_UNTIL_UPDATE': 5, # update copied values like get_sensor every n loops,
     'CONTROLLER_RINGBUFFER_SIZE': 100,
-    'COUGH_DURATION': 0.1
+    'COUGH_DURATION': 0.1,
+    'LOGLEVEL': 'WARNING',
+    'GUI_STATE_FN': 'gui_state.json',
+    'ENABLE_DIALOGS': True
 }
 """
 Declare all available parameters and set default values. If no default, set as None. 
@@ -57,6 +60,7 @@ Declare all available parameters and set default values. If no default, set as N
 * ``DATA_DIR``: ~/vent/data - for storage of waveform data
 * ``LOGGING_MAX_BYTES`` : the **total** storage space for all loggers -- each logger gets ``LOGGING_MAX_BYTES/len(loggers)`` space
 * ``LOGGING_MAX_FILES`` : number of files to split each logger's logs across
+* ``GUI_STATE_FN``: Filename of gui control state file, relative to ``VENT_DIR``
 """
 
 def set_pref(key: str, val):
@@ -143,7 +147,8 @@ def save_prefs(prefs_fn: str = None):
 
     with globals()['_LOCK']:
         with open(prefs_fn, 'w') as prefs_f:
-            json.dump(globals()['_PREFS']._getvalue(), prefs_f)
+            json.dump(globals()['_PREFS']._getvalue(), prefs_f,
+                      indent=4, separators=(',', ': '))
 
     globals()['_LOGGER'].info(f'Saved prefs to {prefs_fn}')
 

@@ -28,6 +28,7 @@ class Value(object):
                  decimals: int,
                  control: bool,
                  sensor: bool,
+                 display: bool,
                  default: (int, float) = None):
         """
         Definition of a value.
@@ -47,6 +48,8 @@ class Value(object):
                     though the user-set alarm values are initialized as ``safe_range``.
 
             decimals (int): the number of decimals of precision used when displaying the value
+            display (bool): whether the value should be displayed in the monitor. if ``control == True``,
+                automatically set to ``False`` because all controls have their own numerical displays
         """
 
         self._name = None
@@ -57,6 +60,7 @@ class Value(object):
         self._default = None
         self._control = None
         self._sensor = None
+        self._display = None
 
         self.name = name
         self.units = units
@@ -65,6 +69,7 @@ class Value(object):
         self.decimals = decimals
         self.control = control
         self.sensor = sensor
+        self.display = display
 
         if default is not None:
             self.default = default
@@ -94,8 +99,9 @@ class Value(object):
 
     @safe_range.setter
     def safe_range(self, safe_range):
-        assert(isinstance(safe_range, tuple) or isinstance(safe_range, list))
-        assert(all([isinstance(x, int) or isinstance(x, float) for x in safe_range]))
+        assert(isinstance(safe_range, tuple) or isinstance(safe_range, list) or safe_range is None)
+        if isinstance(safe_range, tuple) or isinstance(safe_range, list):
+            assert(all([isinstance(x, int) or isinstance(x, float) for x in safe_range]))
         self._safe_range = safe_range
 
     @property
@@ -134,6 +140,18 @@ class Value(object):
         assert(isinstance(sensor, bool))
         self._sensor = sensor
 
+    @property
+    def display(self):
+        return self._display
+
+    @display.setter
+    def display(self, display):
+        assert(isinstance(display, bool))
+        if self.control:
+            display = False
+        self._display = display
+
+
     def __setitem__(self, key, value):
         self.__setattr__(key, value)
 
@@ -156,60 +174,38 @@ class Value(object):
 
 
 VALUES = odict({
-    ValueName.FIO2: Value(**{ 'name': 'FiO2',
-        'units': '%',
-        'abs_range': (0, 100),
-        'safe_range': (20, 100),
-        'decimals' : 1,
-        'control': False,
-        'sensor': True
-    }),
-    ValueName.VTE: Value(**{
-        'name': 'VTE',
-        'units': 'l',  # Unit is liters :-)
-        'abs_range': (0, 100),
-        'safe_range': (0, 100),
-        'decimals': 2,
-        'control': False,
-        'sensor': True
-    }),
-    ValueName.PRESSURE: Value(**{
-        'name': 'Pressure',
-        'units': 'mmH2O',
-        'abs_range': (0,70),
-        'safe_range': (0,60),
-        'decimals': 1,
-        'control': False,
-        'sensor': True
-    }),
-    ValueName.IE_RATIO: Value(**{
-        'name': 'I:E Ratio',
-        'units': '',
-        'abs_range': (0, 2),
-        'safe_range': (0.33, 1),
-        'decimals': 2,
-        'control': False,
-        'sensor': False
-    }),
     ValueName.PIP: Value(**{
         'name': 'PIP', # (Peak Inspiratory Pressure)
-        'units': 'cm H2O',
+        'units': 'cmH2O',
         'abs_range': (0, 70), # FIXME
-        'safe_range': (0, 50), # From DrDan https://tigervents.slack.com/archives/C011MRVJS7L/p1588190130492300
+        'safe_range': (0, 40), # From DrDan https://tigervents.slack.com/archives/C011MRVJS7L/p1588190130492300
         'default': 35,           # FIXME
         'decimals': 1,
         'control': True,
-        'sensor': True
+        'sensor': True,
+        'display': True
     }),
-    ValueName.PIP_TIME: Value(**{
-        'name': 'PIPt',
-        'units': 'seconds',
-        'abs_range': (0, 1),  # FIXME
-        'safe_range': (0.2, 0.5),  # FIXME
-        'default': 0.3,  # FIXME
+    ValueName.PEEP: Value(**{
+        'name': 'PEEP', #  (Positive End Expiratory Pressure)
+        'units': 'cmH2O',
+        'abs_range': (0, 20),  # FIXME
+        'safe_range': (0, 16), # From DrDan https://tigervents.slack.com/archives/C011MRVJS7L/p1588190130492300
+        'default': 5,            # FIXME
         'decimals': 1,
         'control': True,
-        'sensor': False
+        'sensor': True,
+        'display': True
+    }),
+    ValueName.BREATHS_PER_MINUTE: Value(**{
+        'name': 'RR', # Daniel re: FDA labels
+        'units': 'BPM', # Daniel re: FDA labels
+        'abs_range': (0, 50), # FIXME
+        'safe_range': (10, 30), # Stanford's socs https://www.vent4us.org/technical
+        'default': 17,            # FIXME
+        'decimals': 1,
+        'control': True,
+        'sensor': True,
+        'display': True
     }),
     ValueName.INSPIRATION_TIME_SEC: Value(**{
         'name': 'INSPt',
@@ -219,17 +215,30 @@ VALUES = odict({
         'default': 1.0,  # FIXME
         'decimals': 1,
         'control': True,
-        'sensor': True
+        'sensor': True,
+        'display': True
     }),
-    ValueName.PEEP: Value(**{
-        'name': 'PEEP', #  (Positive End Expiratory Pressure)
-        'units': 'cm H2O',
-        'abs_range': (0, 20),  # FIXME
-        'safe_range': (0, 16), # From DrDan https://tigervents.slack.com/archives/C011MRVJS7L/p1588190130492300
-        'default': 5,            # FIXME
+    ValueName.IE_RATIO: Value(**{
+        'name': 'I:E',
+        'units': '',
+        'abs_range': (0, 2),
+        'safe_range': (1, 1.3),
+        'decimals': 2,
+        'default':0.5,
+        'control': True,
+        'sensor': False,
+        'display': False
+    }),
+    ValueName.PIP_TIME: Value(**{
+        'name': 'PIPt',
+        'units': 'seconds',
+        'abs_range': (0, 5),  # FIXME
+        'safe_range': (0.2, 0.5),  # FIXME
+        'default': 0.3,  # FIXME
         'decimals': 1,
         'control': True,
-        'sensor': True
+        'sensor': False,
+        'display': True
     }),
     ValueName.PEEP_TIME: Value(**{
         'name': 'PEEPt',
@@ -239,26 +248,48 @@ VALUES = odict({
         'default': 0.5,  # FIXME
         'decimals': 1,
         'control': True,
-        'sensor': False
+        'sensor': False,
+        'display': True
     }),
-    ValueName.BREATHS_PER_MINUTE: Value(**{
-        'name': 'RR', # Daniel re: FDA labels
-        'units': 'BPM', # Daniel re: FDA labels
-        'abs_range': (0, 50), # FIXME
-        'safe_range': (10, 30), # Stanford's socs https://www.vent4us.org/technical
-        'default': 20,            # FIXME
+    ValueName.PRESSURE: Value(**{
+        'name': 'Pressure',
+        'units': 'cmH2O',
+        'abs_range': (0,70),
+        'safe_range': (0,60),
         'decimals': 1,
-        'control': True,
-        'sensor': True
+        'control': False,
+        'sensor': True,
+        'display': True
+    }),
+    ValueName.VTE: Value(**{
+        'name': 'VTE',
+        'units': 'L',  # Unit is liters :-)
+        'abs_range': (0, 100),
+        'safe_range': (0, 100),
+        'decimals': 2,
+        'control': False,
+        'sensor': True,
+        'display': True
+    }),
+    ValueName.FIO2: Value(**{
+        'name': 'FiO2',
+        'units': '%',
+        'abs_range': (0, 100),
+        'safe_range': (20, 100),
+        'decimals': 1,
+        'control': False,
+        'sensor': True,
+        'display': True
     }),
     ValueName.FLOWOUT: Value(**{
-        'name': 'Flow OUT',
-        'units': 'l/s',
+        'name': 'Flow',
+        'units': 'L/min',
         'abs_range': (0, 2),
         'safe_range': (0, 2),
         'decimals': 2,
         'control': False,
-        'sensor': True
+        'sensor': True,
+        'display': True
     }),
 })
 
@@ -296,6 +327,14 @@ Sent to control module to control operation of ventilator.::
         'default' (int, float): the default value of the parameter,
         'decimals' (int): The number of decimals of precision this number should be displayed with
     }
+"""
+
+DISPLAY = odict({
+    k: v for k, v in VALUES.items() if (v.control == False) and (v.display == True)
+})
+"""
+Values that should be displayed in the GUI. If a value is also a CONTROL it will always have the measured value displayed,
+these values are those that are sensor values that are uncontrolled and should be displayed.
 """
 
 LIMITS = {

@@ -10,6 +10,7 @@ from itertools import count
 
 import vent.io as io
 
+from vent import prefs
 from vent.common.message import SensorValues, ControlValues, ControlSetting, DerivedValues
 from vent.common.loggers import init_logger, DataLogger
 from vent.common.values import CONTROL, ValueName
@@ -263,7 +264,7 @@ class ControlModuleBase:
                     peep_time        = self._DATA_PEEP_TIME,
                     pip              = self._DATA_PIP,
                     pip_plateau      = self._DATA_PIP_PLATEAU,
-                    peep             = self._DATA_PEEP, 
+                    peep             = self._DATA_PEEP,
                     vte              = self._DATA_VTE
                 )
                 #And save both
@@ -635,8 +636,8 @@ class ControlModuleBase:
 
             self.__get_PID_error(yis = self._DATA_PRESSURE, ytarget = self.__SET_PIP, dt = dt, RC = 0.5)
             self.__calculate_control_signal_in()
-            self.__control_signal_out = 0 
-            # if self._DATA_PRESSURE > self.__SET_PIP+2:                                              
+            self.__control_signal_out = 0
+            # if self._DATA_PRESSURE > self.__SET_PIP+2:
             #     self.__control_signal_out = 1                                                        # if exceeded, we open the exhaust valve
             # else:
             #     self.__control_signal_out = 0                                                        # close out valve
@@ -742,18 +743,17 @@ class ControlModuleBase:
                /      \                         <- Sketch waveform of single breath cycle
               /        \
              /          \____________
-        
+
              ^  ^     ^  ^           ^
              A  B     C  D           E           <- Critical time points
-
         """
         with self._lock:
-            wv = (
-            (0, self.__SET_PEEP),                                            # A: start of the waveform
-            (self.__SET_PIP_TIME, self.__SET_PIP),                           # B: reaching PIP within PIP_TIME
-            (self.__SET_I_PHASE, self.__SET_PIP),                            # C: keeping the plateau during I_Phase
-            (self.__SET_PEEP_TIME + self.__SET_I_PHASE, self.__SET_PEEP),    # D: reaching PEEP within PEEP TIME
-            (self.__SET_CYCLE_DURATION, self.__SET_PEEP))                    # E: Cycle ends
+            wv = np.array([
+                (0, self.__SET_PEEP),                                            # A: start of the waveform
+                (self.__SET_PIP_TIME, self.__SET_PIP),                           # B: reaching PIP within PIP_TIME
+                (self.__SET_I_PHASE, self.__SET_PIP),                            # C: keeping the plateau during I_Phase
+                (self.__SET_PEEP_TIME + self.__SET_I_PHASE, self.__SET_PEEP),    # D: reaching PEEP within PEEP TIME
+                (self.__SET_CYCLE_DURATION, self.__SET_PEEP)])                    # E: Cycle ends
         self._time_last_contact = time.time()
         return wv
 
@@ -857,21 +857,21 @@ class ControlModuleDevice(ControlModuleBase):
 
     def _sensor_to_COPY(self):
         # And the sensor measurements
-        self._get_HAL() 
+        self._get_HAL()
 
         with self._lock:
           self.COPY_sensor_values = SensorValues(vals={
-              ValueName.PIP.name                  : self._DATA_PIP,
-              ValueName.PEEP.name                 : self._DATA_PEEP,
-              ValueName.FIO2.name                 : self._DATA_OXYGEN,
-              ValueName.PRESSURE.name             : self._DATA_PRESSURE,
-              ValueName.VTE.name                  : self._DATA_VTE,
-              ValueName.BREATHS_PER_MINUTE.name   : self._DATA_BPM,
-              ValueName.INSPIRATION_TIME_SEC.name : self._DATA_I_PHASE,
-              ValueName.FLOWOUT.name              : self._DATA_Qout,
-              'timestamp'                         : time.time(),
-              'loop_counter'                      : self._loop_counter,
-              'breath_count'                      : self._DATA_BREATH_COUNT
+              ValueName.PIP                  : self._DATA_PIP,
+              ValueName.PEEP                 : self._DATA_PEEP,
+              ValueName.FIO2                 : self._DATA_OXYGEN,
+              ValueName.PRESSURE             : self._DATA_PRESSURE,
+              ValueName.VTE                  : self._DATA_VTE,
+              ValueName.BREATHS_PER_MINUTE   : self._DATA_BPM,
+              ValueName.INSPIRATION_TIME_SEC : self._DATA_I_PHASE,
+              ValueName.FLOWOUT              : self._DATA_Qout,
+              'timestamp'                    : time.time(),
+              'loop_counter'                 : self._loop_counter,
+              'breath_count'                 : self._DATA_BREATH_COUNT
           })
             
     # @timeout
@@ -893,21 +893,8 @@ class ControlModuleDevice(ControlModuleBase):
         Get sensor values from HAL, decorated with timeout.
         """
         self._DATA_PRESSURE = self.HAL.pressure
-        self._DATA_PRESSURE_LIST.append(self._DATA_PRESSURE)
-        if len(self._DATA_PRESSURE_LIST) > 5:
-            self._DATA_PRESSURE_LIST.pop(0)
-        self._DATA_Qout     = 0 # self.HAL.flow_ex
-        self._DATA_OXYGEN   = 0 # self.HAL.oxygen
-        
-        # pq = self.HAL.flow_ex
-        # # ... estimate the baseline flow during expiration with a rankfilter (baseline of air that bypasses patient)
-        # # This has to be subtracted from flow_ex to integrate VTE
-        # if time.time() - self._cycle_start > self.COPY_SET_I_PHASE:
-        #     self._flow_list.append(pq)
-        #     Qbaseline = np.percentile(self._flow_list, 5 )       
-        # else:
-        #     Qbaseline = 0
-        #     self._DATA_Qout = pq - Qbaseline
+        self._DATA_Qout     = 1 #self.HAL.flow_ex
+        self._DATA_OXYGEN   = 50 # self.HAL.oxygen
 
 
     def set_valves_standby(self):
@@ -1124,17 +1111,17 @@ class ControlModuleSimulator(ControlModuleBase):
         # And the sensor measurements
         with self._lock:
             self.COPY_sensor_values = SensorValues(vals={
-              ValueName.PIP.name                  : self._DATA_PIP,
-              ValueName.PEEP.name                 : self._DATA_PEEP,
-              ValueName.FIO2.name                 : self.Balloon.fio2,
-              ValueName.PRESSURE.name             : self.Balloon.current_pressure,
-              ValueName.VTE.name                  : self._DATA_VTE,
-              ValueName.BREATHS_PER_MINUTE.name   : self._DATA_BPM,
-              ValueName.INSPIRATION_TIME_SEC.name : self._DATA_I_PHASE,
-              ValueName.FLOWOUT.name              : self._DATA_Qout,
-              'timestamp'                  : time.time(),
-              'loop_counter'             : self._loop_counter,
-              'breath_count': self._DATA_BREATH_COUNT
+              ValueName.PIP                  : self._DATA_PIP,
+              ValueName.PEEP                 : self._DATA_PEEP,
+              ValueName.FIO2                 : self.Balloon.fio2,
+              ValueName.PRESSURE             : self.Balloon.current_pressure,
+              ValueName.VTE                  : self._DATA_VTE,
+              ValueName.BREATHS_PER_MINUTE   : self._DATA_BPM,
+              ValueName.INSPIRATION_TIME_SEC : self._DATA_I_PHASE,
+              ValueName.FLOWOUT              : self._DATA_Qout,
+              'timestamp'                    : time.time(),
+              'loop_counter'                 : self._loop_counter,
+              'breath_count'                 : self._DATA_BREATH_COUNT
             })
 
     def _start_mainloop(self):
