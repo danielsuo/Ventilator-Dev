@@ -142,7 +142,7 @@ class ControlModuleBase:
         self.__DATA_old     = None
         self._last_update   = time.time()
         self._flow_list = deque(maxlen = 500)          # An archive of past flows, to calculate background flow out
-        self._DATA_PRESSURE_LIST = list()
+        self._DATA_PRESSURE_LIST = deque(maxlen=5)
 
         ############### Initialize COPY variables for threads  ##############
         # COPY variables that later updated on a regular basis
@@ -591,48 +591,48 @@ class ControlModuleBase:
 
         self._DATA_VOLUME += dt * self._DATA_Qout  # Integrate what has happened within the last few seconds from flow out
 
-        self._DATA_PRESSURE = np.mean(self._DATA_PRESSURE_LIST)
+        # self._DATA_PRESSURE = np.mean(self._DATA_PRESSURE_LIST)
 
 
         #self.__SET_PIP_TIME = 0.5*self.__SET_I_PHASE
         #maxflow = 60
 
-        '''if cycle_phase < self.__SET_PIP_TIME:
-            self.__KP = 8
-            self.__KI = 0
-            self.__KD = 0
-            target_pressure = cycle_phase*(self.__SET_PIP*1.1 - self.__SET_PEEP) / self.__SET_PIP_TIME  + self.__SET_PEEP
-            target_pressure = self.__SET_PIP
-            self.__PID_OFFSET = 0
-            self.__get_PID_error(yis = self._DATA_PRESSURE, ytarget = target_pressure, dt = dt, RC = 0.5)
-            self.__calculate_control_signal_in()
-            self.__control_signal_out = 0   # close out valve
-            #if self._DATA_PRESSURE > self.__SET_PIP:
-            #    self.__control_signal_in = 0'''
+        # '''if cycle_phase < self.__SET_PIP_TIME:
+        #     self.__KP = 8
+        #     self.__KI = 0
+        #     self.__KD = 0
+        #     target_pressure = cycle_phase*(self.__SET_PIP*1.1 - self.__SET_PEEP) / self.__SET_PIP_TIME  + self.__SET_PEEP
+        #     target_pressure = self.__SET_PIP
+        #     self.__PID_OFFSET = 0
+        #     self.__get_PID_error(yis = self._DATA_PRESSURE, ytarget = target_pressure, dt = dt, RC = 0.5)
+        #     self.__calculate_control_signal_in()
+        #     self.__control_signal_out = 0   # close out valve
+        #     #if self._DATA_PRESSURE > self.__SET_PIP:
+        #     #    self.__control_signal_in = 0'''
 
         if cycle_phase < self.__SET_I_PHASE:
             self.__KP = 4
             self.__KI = 0
             self.__KD = 0
             self.__PID_OFFSET = 0
-            '''if cycle_phase < self.__SET_PIP_TIME:
-                self.__PID_OFFSET = 10
-            else:
-                self.__PID_OFFSET = 10*(-(cycle_phase - .33*self.__SET_I_PHASE)*.25) # roll off the offset'''
-            '''if self._DATA_PRESSURE < self.__SET_PIP*.7 and self.__pipstage < 1:
-                self.__PID_OFFSET = maxflow
-                self.__KI = 0
-            elif self._DATA_PRESSURE < self.__SET_PIP*.85 and self.__pipstage < 2:
-                self.__PID_OFFSET = maxflow*.5
-                self.__KI = 0
-                self.__pipstage = 1
-            elif self._DATA_PRESSURE < self.__SET_PIP and self.__pipstage < 3:
-                self.__PID_OFFSET = maxflow*.25
-                self.__KI = 0
-                self.__pipstage = 2
-            else:
-                self.__pipstage = 3
-                self.__PID_OFFSET = 0'''
+            # '''if cycle_phase < self.__SET_PIP_TIME:
+            #     self.__PID_OFFSET = 10
+            # else:
+            #     self.__PID_OFFSET = 10*(-(cycle_phase - .33*self.__SET_I_PHASE)*.25) # roll off the offset'''
+            # '''if self._DATA_PRESSURE < self.__SET_PIP*.7 and self.__pipstage < 1:
+            #     self.__PID_OFFSET = maxflow
+            #     self.__KI = 0
+            # elif self._DATA_PRESSURE < self.__SET_PIP*.85 and self.__pipstage < 2:
+            #     self.__PID_OFFSET = maxflow*.5
+            #     self.__KI = 0
+            #     self.__pipstage = 1
+            # elif self._DATA_PRESSURE < self.__SET_PIP and self.__pipstage < 3:
+            #     self.__PID_OFFSET = maxflow*.25
+            #     self.__KI = 0
+            #     self.__pipstage = 2
+            # else:
+            #     self.__pipstage = 3
+            #     self.__PID_OFFSET = 0'''
 
             self.__get_PID_error(yis = self._DATA_PRESSURE, ytarget = self.__SET_PIP, dt = dt, RC = 0.5)
             self.__calculate_control_signal_in()
@@ -892,7 +892,8 @@ class ControlModuleDevice(ControlModuleBase):
         """
         Get sensor values from HAL, decorated with timeout.
         """
-        self._DATA_PRESSURE = self.HAL.pressure
+        self._DATA_PRESSURE_LIST.append(self.HAL.pressure)
+        self._DATA_PRESSURE = np.mean(self._DATA_PRESSURE_LIST)
         self._DATA_Qout     = 1 #self.HAL.flow_ex
         self._DATA_OXYGEN   = 50 # self.HAL.oxygen
 
@@ -1146,7 +1147,8 @@ class ControlModuleSimulator(ControlModuleBase):
                     dt = self._LOOP_UPDATE_TIME
 
             self.Balloon.update(dt = dt)                            # Update the state of the balloon simulation
-            self._DATA_PRESSURE = self.Balloon.get_pressure()       # Get a pressure measurement from balloon and tell controller             --- SENSOR 1
+            self._DATA_PRESSURE_LIST.append(self.Balloon.get_pressure())  # Get a pressure measurement from balloon and tell controller             --- SENSOR 1
+            self._DATA_PRESSURE = np.mean(self._DATA_PRESSURE_LIST)
 
             self._control_update(dt = dt)                               # Update the PID Controller
 
