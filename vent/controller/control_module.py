@@ -849,8 +849,8 @@ class ControlModuleDevice(ControlModuleBase):
                 dt = self._LOOP_UPDATE_TIME
             
             self._get_HAL()                                          # Update pressure and flow measurement
-            # self._PID_update(dt = dt)                              # With that, calculate controls
-            self._Predictive_PID_update(dt = dt)                     # With that, calculate controls
+            self._PID_update(dt = dt)                              # With that, calculate controls
+            # self._Predictive_PID_update(dt = dt)                     # With that, calculate controls
 
             valve_open_in  = self._get_control_signal_in()           #    -> Inspiratory side: get control signal for PropValve
             valve_open_out = self._get_control_signal_out()          #    -> Expiratory side: get control signal for Solenoid
@@ -1067,8 +1067,8 @@ class ControlModuleSimulator(ControlModuleBase):
             if len(self._DATA_PRESSURE_LIST) > 5:
                 self._DATA_PRESSURE_LIST.pop(0)
 
-            # self._PID_update(dt = dt)                               # Update the PID Controller
-            self._Predictive_PID_update(dt = dt)
+            self._PID_update(dt = dt)                               # Update the PID Controller
+            # self._Predictive_PID_update(dt = dt)
 
             x = self._get_control_signal_in()                       # Inspiratory side: get control signal for PropValve
             Qin = self.__SimulatedPropValve(x, dt = dt)             # And calculate the produced flow Qin
